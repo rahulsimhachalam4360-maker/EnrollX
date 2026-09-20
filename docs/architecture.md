@@ -10,9 +10,8 @@ Diagrams for anyone picking up the Fee Registration System for the first time.
 ## 1. The three layers
 
 The single most important idea in this codebase: **pages never touch data
-directly.** They ask `FeeAPI`, and `FeeAPI` decides where the data comes from.
-
-That is why switching from localStorage to your real backend is a one-file change.
+directly.** They ask `FeeAPI`, and `FeeAPI` is the only thing that knows there is
+a server at all.
 
 ```mermaid
 flowchart TD
@@ -28,8 +27,8 @@ flowchart TD
     end
 
     subgraph L3["LAYER 3 - Where the data actually lives"]
-        C["js/store.js<br/>browser localStorage<br/><i>the fake database</i>"]
-        D[("Your REST API<br/>+ real database")]
+        D[("Spring Boot API<br/>backend/<br/>localhost:8080/api")]
+        E[("Database")]
     end
 
     A1 --> B
@@ -37,16 +36,17 @@ flowchart TD
     A3 --> B
     A4 --> B
 
-    B -->|"API_MODE = mock &nbsp;(today)"| C
-    B -.->|"API_MODE = live &nbsp;(later)"| D
+    B -->|"fetch() + JSON"| D
+    D --> E
 
     style B fill:#2a78d6,stroke:#1c5cab,color:#fff
-    style C stroke-dasharray: 5 5
+    style D fill:#2a78d6,stroke:#1c5cab,color:#fff
 ```
 
 **Read it like a restaurant:** the pages are the customer, `api.js` is the waiter,
-and `store.js` is a temporary kitchen. Replace the kitchen and the customer never
-notices, because the customer only ever talks to the waiter.
+and the backend is the kitchen. The customer only ever talks to the waiter — which
+is why this app previously ran against a fake localStorage kitchen, and swapping in
+the real one changed no page script, no HTML and no CSS.
 
 ---
 
@@ -60,7 +60,7 @@ sequenceDiagram
     actor Clerk
     participant UI as collect.js
     participant API as api.js — FeeAPI
-    participant DB as store.js — localStorage
+    participant SRV as Spring Boot API
 
     Clerk->>UI: Clicks "Record payment"
     UI->>UI: event.preventDefault()
@@ -72,17 +72,17 @@ sequenceDiagram
         UI-->>Clerk: Field turns red. Nothing is saved.
     else Form looks good
         UI->>API: createPayment({ studentId, amount, mode, date })
+        API->>SRV: POST /api/payments
 
-        API->>API: Check again: amount <= balance due
+        SRV->>SRV: Recompute due from the DB<br/>Check again: amount <= due
 
         alt Amount is too high
+            SRV-->>API: 400 { message }
             API-->>UI: throw ApiError, status 400
             UI-->>Clerk: Red toast explaining why
         else Amount is fine
-            API->>DB: nextId("payment")
-            DB-->>API: "RCP-2012"
-            API->>DB: savePayments(list)
-            DB-->>API: written to disk
+            SRV->>SRV: Insert RCP-2012, commit
+            SRV-->>API: 201 payment + balanceAfter
             API-->>UI: payment + balanceAfter
             UI-->>Clerk: Green toast + printable receipt
             UI->>UI: Clear the form for the next student
@@ -95,10 +95,11 @@ sequenceDiagram
 | Check | Lives in | Purpose |
 |---|---|---|
 | First | `collect.js` | **Convenience.** Tell the user instantly, before any round trip. |
-| Second | `api.js` | **Safety.** A form can be bypassed with DevTools. |
+| Second | the API | **Safety.** A form can be bypassed with DevTools. |
 
 Front-end validation is a helpful suggestion. The server's validation is the
-actual rule. When your real backend arrives, it must enforce this too.
+actual rule — which is why the server recomputes the balance from the database
+rather than trusting any figure the browser sends it.
 
 ---
 
@@ -138,8 +139,9 @@ erDiagram
 
 ## 4. Money is calculated, never stored
 
-`totalFee`, `paid` and `due` are **not** columns. They are worked out fresh every
-time, in `decorate()` inside [`js/api.js`](../js/api.js).
+`totalFee`, `paid` and `due` are **not** columns. The server works them out fresh
+on every read and sends them down with each student, so the browser never does
+money arithmetic.
 
 ```mermaid
 flowchart LR
@@ -199,48 +201,36 @@ flowchart LR
 
 ---
 
-## 6. Going live: what changes
+## 6. Running the two halves
+
+The UI and the API are separate processes on separate ports, so both must be up.
 
 ```mermaid
-flowchart TD
-    Start["Backend is ready"] --> S1["1. api.js:<br/>API_MODE = 'live'<br/>API_BASE_URL = your server"]
-    S1 --> S2["2. In each method, delete the mock branch.<br/>The real fetch call is already written above it."]
-    S2 --> S3["3. Delete js/store.js<br/>and its 4 script tags"]
-    S3 --> Done["Done"]
+flowchart LR
+    B["backend/<br/>mvn spring-boot:run<br/><b>:8080</b>"]
+    F["UI<br/>python -m http.server 5500<br/><b>:5500</b>"]
 
-    Done --> N1["Pages: unchanged"]
-    Done --> N2["HTML: unchanged"]
-    Done --> N3["CSS: unchanged"]
+    F -->|"fetch, cross-origin"| B
+    B -->|"CORS allows :5500"| F
 
-    style Done fill:#0ca30c,color:#fff
-    style N1 stroke-dasharray: 4 4
-    style N2 stroke-dasharray: 4 4
-    style N3 stroke-dasharray: 4 4
+    style B fill:#2a78d6,stroke:#1c5cab,color:#fff
+    style F fill:#2a78d6,stroke:#1c5cab,color:#fff
 ```
 
-Each method in `api.js` already looks like this — the real call is written and
-waiting, just switched off:
+**Open the UI over HTTP, never from disk.** A `file://` page sends `Origin: null`,
+the API's CORS policy rejects it, and every screen fails to load with an error
+that looks like the server is down when it isn't.
 
-```js
-getStudents: function (filters) {
-  if (isLive()) {
-    return request('/students', { query: filters });   // <-- the real call
-  }
-  return mock(function () {
-    /* the localStorage version - delete this branch */
-  });
-}
-```
-
-The endpoint list and exact JSON shapes your server must return are in the
-[README](../README.md#endpoints-the-server-needs-to-expose).
+The endpoint list and exact JSON shapes are in the
+[README](../README.md#endpoints-the-api-exposes).
 
 ---
 
 ## Where to start reading the code
 
-1. [`js/api.js`](../js/api.js) — read `getStudents`, then `createPayment`.
+1. [`js/api.js`](../js/api.js) — the whole client half of the contract, in one
+   short file. Read `getStudents`, then `createPayment`.
 2. [`js/collect.js`](../js/collect.js) — find `form.addEventListener('submit', ...)`
    and trace it against diagram 2 above.
-
-Those two files are about 80% of the project.
+3. `backend/src/main/java/com/enrollx/fee/payment/PaymentService.java` — the other
+   side of diagram 2, including the balance check that actually counts.

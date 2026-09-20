@@ -1,20 +1,24 @@
 # Fee Registration System
 
-Student fee registration and collection, built as a **front-end only** application:
-HTML5, CSS, Bootstrap 5.3 and vanilla JavaScript. No framework, no build step, no
-npm install.
-
-There is no server yet, so data lives in the browser's `localStorage`. The code is
-structured so that **connecting the real API is a change to one file** — see
-[Connecting the API](#connecting-the-api).
+Student fee registration and collection. The front end is HTML5, CSS, Bootstrap 5.3
+and vanilla JavaScript — no framework, no build step, no npm install. It talks to a
+Java Spring Boot API in [`backend/`](backend/).
 
 ---
 
 ## Running it
 
-Open `index.html` in a browser. That's it.
+**1. Start the API** (it must be running before you open the UI):
 
-Optionally serve it over HTTP (nicer URLs, and matches how it will be deployed):
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+It comes up on <http://localhost:8080/api> and seeds 9 sample students and
+11 receipts on first run.
+
+**2. Serve the UI over HTTP:**
 
 ```bash
 # Python
@@ -26,8 +30,10 @@ npx serve .
 
 Then visit <http://localhost:5500>.
 
-The app seeds 9 sample students and 11 receipts the first time it runs.
-**Reset data** in the navbar restores that sample set at any time.
+> **Don't open `index.html` directly from disk.** A `file://` page sends
+> `Origin: null`, which the API's CORS policy rejects, and every request fails.
+> The allowed origins are `localhost:5500`, `127.0.0.1:5500` and `localhost:3000`
+> — see `backend/.../config/CorsConfig.java` to add more.
 
 ---
 
@@ -54,7 +60,6 @@ fee-registration-system/
 │   └── styles.css        Design tokens + the components Bootstrap doesn't have
 └── js/
     ├── utils.js          Formatting, validation helpers, toasts, confirm dialog
-    ├── store.js          MOCK BACKEND — localStorage + seed data. Delete when the API lands.
     ├── api.js            SERVICE LAYER — the only file that touches data
     ├── layout.js         Shared navbar, theme toggle, confirm modal
     ├── receipt.js        Receipt renderer (shared by collect + payments)
@@ -64,48 +69,36 @@ fee-registration-system/
     └── payments.js       Page script
 ```
 
-Scripts are plain `<script>` files using the IIFE pattern (not ES modules), so the
-app also runs straight off `file://` without a server.
+Scripts are plain `<script>` files using the IIFE pattern (not ES modules), so there
+is no bundler to run — edit a file and refresh.
 
 ---
 
 ## Architecture
 
 ```
-  page scripts  ──►  js/api.js (FeeAPI)  ──►  js/store.js (localStorage)   ← today
-                                         ──►  fetch() → your REST API      ← later
+  page scripts  ──►  js/api.js (FeeAPI)  ──►  fetch()  ──►  Spring Boot API
 ```
 
-**No page script ever touches `localStorage` directly.** Every page calls
-`FeeAPI.something()` and gets a Promise back — exactly the shape it will have
-against a real server, including the artificial latency so loading states and
-disabled buttons behave correctly.
+**No page script ever makes an HTTP call directly.** Every page calls
+`FeeAPI.something()` and gets a Promise back. That one indirection is why the
+switch from the old localStorage mock to the real API touched no page script, no
+HTML and no CSS.
 
-### Connecting the API
+### Pointing at a different server
 
-1. In `js/api.js`, set:
-   ```js
-   var API_MODE = 'live';
-   var API_BASE_URL = 'https://your-server/api';
-   ```
-2. Each method already contains the real call, written out. For example:
-   ```js
-   getStudents: function (filters) {
-     if (isLive()) {
-       return request('/students', { query: filters });   // ← the real call
-     }
-     return mock(function () { /* localStorage version */ });
-   }
-   ```
-   Delete the `mock(...)` branch once the endpoint is live.
-3. Delete `js/store.js` and remove its four `<script>` tags.
-4. Nothing else changes — no page script, no HTML, no CSS.
+One line, at the top of `js/api.js`:
 
-The transport (`request`) already handles JSON encoding, query strings, a
-`Bearer` token from `localStorage['frs.token']`, and error responses (thrown as
-`ApiError` with `.status` and `.body`).
+```js
+var API_BASE_URL = 'http://localhost:8080/api';
+```
 
-### Endpoints the server needs to expose
+The transport handles JSON encoding, query strings, a `Bearer` token from
+`localStorage['frs.token']`, and error responses — thrown as `ApiError` with
+`.status` and `.body`. Whatever host you point at has to allow your UI's origin
+in its CORS config.
+
+### Endpoints the API exposes
 
 | Method | Path | Notes |
 |---|---|---|
@@ -185,12 +178,14 @@ remaining balance.
 
 ---
 
-## Business rules implemented client-side
+## Business rules
+
+Every rule below is enforced by the **API**. The forms check most of them too, but
+only so the user hears about a mistake without a round trip — a form can be
+bypassed with DevTools, so the server's check is the one that counts.
 
 - Total fee = tuition + transport + hostel + exam + other.
-- A payment can never exceed the outstanding balance. Enforced in the form **and**
-  again in `FeeAPI.createPayment`, because a form can be bypassed — the server must
-  enforce it too.
+- A payment can never exceed the outstanding balance.
 - Fee status: `paid` (due = 0), `partial` (something paid, balance remains),
   `unpaid` (nothing paid).
 - Editing a fee structure cannot drop the total below what the student has already
