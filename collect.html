@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Collect Fee &middot; Fee Registration System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+
+  <div data-app-nav></div>
+
+  <main class="container py-4">
+
+    <header class="mb-4">
+      <h1 class="page-title">Collect fee</h1>
+      <p class="page-subtitle">Record a payment and issue a receipt</p>
+    </header>
+
+    <div class="row g-3">
+
+      <!-- Payment form -->
+      <div class="col-12 col-lg-7">
+        <div class="card">
+          <div class="card-header">Payment details</div>
+          <div class="card-body">
+            <form id="paymentForm" novalidate>
+
+              <div class="mb-3">
+                <label class="form-label required" for="studentId">Student</label>
+                <select class="form-select" id="studentId" name="studentId">
+                  <option value="">Select a student&hellip;</option>
+                </select>
+                <div class="invalid-feedback">Choose the student paying the fee.</div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label required" for="amount">Amount</label>
+                  <div class="input-group has-validation">
+                    <span class="input-group-text">&#8377;</span>
+                    <input type="number" class="form-control" id="amount" name="amount"
+                           min="1" step="1" placeholder="0" disabled>
+                    <div class="invalid-feedback">Enter an amount within the balance due.</div>
+                  </div>
+                  <div class="form-text" data-amount-hint>Select a student first.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label required" for="mode">Payment mode</label>
+                  <select class="form-select" id="mode" name="mode">
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label required" for="date">Payment date</label>
+                  <input type="date" class="form-control" id="date" name="date">
+                  <div class="invalid-feedback">Pick a date that is not in the future.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label" for="reference" data-reference-label>
+                    Reference number
+                  </label>
+                  <input type="text" class="form-control" id="reference" name="reference"
+                         maxlength="30" placeholder="Transaction / cheque no.">
+                  <div class="invalid-feedback">A reference number is required for this mode.</div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label" for="remarks">Remarks</label>
+                  <textarea class="form-control" id="remarks" name="remarks" rows="2"
+                            maxlength="200" placeholder="Optional note"></textarea>
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" data-submit-btn disabled>
+                  Record payment
+                </button>
+                <button type="reset" class="btn btn-light">Clear</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fee summary for the selected student -->
+      <div class="col-12 col-lg-5">
+        <div class="card h-100">
+          <div class="card-header">Fee summary</div>
+          <div class="card-body" data-fee-summary>
+            <p class="text-secondary small mb-0">
+              Select a student to see their fee structure and outstanding balance.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Receipt -->
+  <div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header no-print">
+          <h5 class="modal-title">Payment recorded</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="receiptPrintArea" data-receipt-body></div>
+        </div>
+        <div class="modal-footer no-print">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-print-receipt>Print receipt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/receipt.js"></script>
+  <script src="js/collect.js"></script>
+</body>
+</html>
