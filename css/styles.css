@@ -1,0 +1,295 @@
+/* ==========================================================================
+   Fee Registration System - custom styles
+   Bootstrap 5.3 supplies the base; this file only adds tokens + the few
+   components Bootstrap does not have (stat tiles, meter, bar chart, receipt).
+   ========================================================================== */
+
+/* --- Design tokens -------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --surface-1:      #fcfcfb;   /* card / chart surface */
+  --page-plane:     #f4f5f7;   /* app background       */
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --hairline:       rgba(11, 11, 11, 0.10);
+  --gridline:       #e1e0d9;
+
+  /* Sequential blue ramp - used for every magnitude bar and meter */
+  --seq-100: #cde2fb;
+  --seq-250: #86b6ef;
+  --seq-450: #2a78d6;
+  --seq-550: #1c5cab;
+
+  /* The meter's empty track. Must clearly read as "not filled". */
+  --meter-track: #cde2fb;
+
+  /* Status palette - reserved. Never reused as a "series" colour. */
+  --status-good:     #0ca30c;
+  --status-warning:  #fab219;
+  --status-serious:  #ec835a;
+  --status-critical: #d03b3b;
+
+  --radius: 10px;
+}
+
+[data-bs-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-1:      #1a1a19;
+  --page-plane:     #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --hairline:       rgba(255, 255, 255, 0.10);
+  --gridline:       #2c2c2a;
+
+  --seq-100: #184f95;
+  --seq-250: #256abf;
+  --seq-450: #3987e5;
+  --seq-550: #86b6ef;
+
+  /* A dimmed wash of the fill hue - the light-mode step would read as filled. */
+  --meter-track: rgba(57, 135, 229, 0.22);
+}
+
+/* --- Base ----------------------------------------------------------------- */
+body {
+  background: var(--page-plane);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+.page-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 0.15rem 0 0;
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--hairline);
+  font-weight: 600;
+}
+
+/* Money columns must align vertically -> tabular figures. */
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* --- Stat tiles (KPI row) ------------------------------------------------- */
+.stat-tile {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  height: 100%;
+}
+
+.stat-tile__label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Standalone figures keep proportional figures (they are not in a column). */
+.stat-tile__value {
+  color: var(--text-primary);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0.35rem 0 0;
+}
+
+.stat-tile__note {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin: 0.25rem 0 0;
+}
+
+/* --- Meter (one ratio against a limit) ------------------------------------ */
+.meter__track {
+  background: var(--meter-track);
+  border-radius: 4px;
+  height: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.meter__fill {
+  background: var(--seq-450);
+  border-radius: 0 4px 4px 0;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+/* --- Horizontal bar chart (magnitude, single hue) ------------------------- */
+.viz-bar {
+  align-items: center;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(90px, 30%) 1fr minmax(84px, auto);
+  padding: 5px 0; /* keeps a >=2px surface gap between adjacent bars */
+}
+
+.viz-bar__label {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viz-bar__track {
+  background: transparent;
+  border-bottom: 1px solid var(--gridline);
+  height: 14px;
+  position: relative;
+}
+
+.viz-bar__fill {
+  background: var(--seq-450);
+  border-radius: 0 4px 4px 0; /* rounded data-end, anchored to the baseline */
+  bottom: 0;
+  cursor: pointer;
+  height: 10px;
+  left: 0;
+  min-width: 2px;
+  position: absolute;
+}
+
+.viz-bar__value {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.viz-empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+/* --- Status badges (colour is never the only channel - each has a label) -- */
+.badge-status {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.3em 0.7em;
+}
+
+.badge-status--paid    { background: rgba(12, 163, 12, 0.14);  color: var(--status-good); }
+.badge-status--partial { background: rgba(250, 178, 25, 0.18); color: #8a6100; }
+.badge-status--unpaid  { background: rgba(208, 59, 59, 0.14);  color: var(--status-critical); }
+
+[data-bs-theme="dark"] .badge-status--partial { color: var(--status-warning); }
+
+/* --- Tables --------------------------------------------------------------- */
+.table > :not(caption) > * > * {
+  padding: 0.7rem 0.75rem;
+}
+
+.table thead th {
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.table-empty {
+  color: var(--text-muted);
+  padding: 2.5rem 1rem !important;
+  text-align: center;
+}
+
+/* --- Receipt -------------------------------------------------------------- */
+.receipt {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.receipt__brand {
+  border-bottom: 2px solid var(--seq-450);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+}
+
+.receipt__amount {
+  border-top: 1px solid var(--hairline);
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+}
+
+.receipt dt {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.receipt dd {
+  font-size: 0.92rem;
+  margin-bottom: 0.75rem;
+}
+
+/* --- Misc ----------------------------------------------------------------- */
+.fee-breakdown-row {
+  border-bottom: 1px dashed var(--gridline);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+}
+
+.fee-breakdown-row:last-child {
+  border-bottom: 0;
+}
+
+.toast-stack {
+  bottom: 1rem;
+  position: fixed;
+  right: 1rem;
+  z-index: 1090;
+}
+
+.required::after {
+  color: var(--status-critical);
+  content: " *";
+}
+
+/* --- Print (receipt only) ------------------------------------------------- */
+@media print {
+  body * { visibility: hidden; }
+  #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+  #receiptPrintArea {
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+  .no-print { display: none !important; }
+}
