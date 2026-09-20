@@ -53,8 +53,6 @@
                 'aria-label="Toggle light or dark theme">' +
                 '<span data-theme-icon>Dark</span>' +
               '</button>' +
-              '<button class="btn btn-sm btn-outline-secondary" type="button" ' +
-                'data-reset-demo title="Restore the sample data">Reset data</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -115,25 +113,11 @@
         try { localStorage.setItem(THEME_KEY, next); } catch (err) { /* private mode */ }
       });
     }
-
-    var reset = document.querySelector('[data-reset-demo]');
-    if (reset) {
-      reset.addEventListener('click', function () {
-        Utils.confirm(
-          'Discard all changes and restore the original sample data?', 'Reset'
-        ).then(function (ok) {
-          if (!ok) { return; }
-          Store.reset();
-          location.reload();
-        });
-      });
-    }
   }
 
   var Layout = {
     /* Called at the top of every page script. */
     init: function () {
-      Store.init();
       renderNav();
       renderConfirmModal();
       initTheme();
